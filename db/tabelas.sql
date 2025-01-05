@@ -1,3 +1,19 @@
+drop table if exists Visualization;
+drop table if exists Presentation;
+drop table if exists Subscription;
+drop table if exists Tag;
+drop table if exists Media;
+drop table if exists VideoSubtitle;
+drop table if exists Comment;
+drop table if exists VideoChapter;
+drop table if exists VideoAudio;
+drop table if exists VideoImage;
+drop table if exists Video;
+drop table if exists VideoCategory;
+drop table if exists Post;
+drop table if exists Channel;
+drop table if exists Account;
+
 CREATE TABLE Account (
     email VARCHAR(256) PRIMARY KEY,
     isPremium BOOLEAN NOT NULL DEFAULT false,
@@ -32,7 +48,7 @@ CREATE TABLE Video (
     allowComments BOOLEAN NOT NULL DEFAULT true,
     id CHAR(11) PRIMARY KEY,
     postId INT UNIQUE NOT NULL REFERENCES Post(id) ON DELETE CASCADE,
-    lenght INT NOT NULL,
+    length INT NOT NULL,
     thumbnail BYTEA NOT NULL,
     description VARCHAR(5000) NOT NULL,
     videoCategoryName VARCHAR(64) NOT NULL REFERENCES VideoCategory(name) ON DELETE RESTRICT
@@ -72,7 +88,7 @@ CREATE TABLE Comment (
 );
 
 CREATE TABLE VideoSubtitle (
-    data BYTEA NOT NULL,
+    data XML NOT NULL,
     language VARCHAR(32),
     videoId CHAR(11) NOT NULL REFERENCES Video(id) ON DELETE CASCADE,
     PRIMARY KEY (language, videoId)
@@ -110,3 +126,4 @@ CREATE TABLE Visualization (
     disliked BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY (channelUserName, postId)
 );
+
