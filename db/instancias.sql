@@ -6,6 +6,7 @@ DELETE FROM VIDEO *;
 DELETE FROM TAG *;
 DELETE FROM COMMENT *;
 DELETE FROM VIDEOSUBTITLE *;
+DELETE FROM VISUALIZATION *;
 
 INSERT INTO ACCOUNT (email, ispremium, name)
 VALUES
@@ -23,7 +24,10 @@ VALUES
 
 INSERT INTO SUBSCRIPTION (spectatorusername, creatorusername, isbellon)
 VALUES
-	('coisadenerd', 'cadeachave', TRUE);
+    ('coisadenerd', 'cadeachave', TRUE),
+    ('republicacoisadenerd', 'cadeachave', FALSE),
+    ('bigmanschlatt', 'cadeachave', FALSE),
+    ('cadeachave', 'coisadenerd', FALSE);
 
 INSERT INTO VIDEOCATEGORY (name, url)
 VALUES
@@ -43,8 +47,8 @@ VALUES
 INSERT INTO POST (id, date, authorusername)
 VALUES
     (1, '2024-12-24 16:30:09', 'cadeachave'),
-    (2, '2024-12-24 16:30:14', 'coisadenerd');
-    --(3, , 'republicacoisadenerd'),
+    (2, '2024-12-24 16:30:14', 'coisadenerd'),
+    (3, '2024-12-24 16:30:33', 'cadeachave');
     --(6, , 'bigmanschlatt'),
     --(5, , 'jschlatt'),
     --(4, , 'jschlattLIVE');
@@ -81,7 +85,8 @@ VALUES
 
 INSERT INTO COMMENT (id, postid, attachedpostid, text)
 VALUES
-    (1, 2, 1, 'First!');
+    (1, 2, 1, 'First!'),
+    (2, 3, 2, 'Uau!');
 
 INSERT INTO VIDEOSUBTITLE (videoid, language, data)
 VALUES
