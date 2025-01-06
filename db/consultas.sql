@@ -1,4 +1,4 @@
-DROP VIEW VideoLikes;
+DROP VIEW IF EXISTS VideoLikes;
 
 -- Visão que representa o id de vídeo e o número de likes de vídeos
 CREATE VIEW VideoLikes AS
