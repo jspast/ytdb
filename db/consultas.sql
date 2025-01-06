@@ -13,7 +13,7 @@ FROM videocategory left join (videolikes natural join video) on (name = videocat
 GROUP BY videocategory.name
 HAVING max(videolikes) > 0;
 
--- Consulta que representa a quantidade total de likes por canal
+-- Consulta que representa a quantidade total de likes em vídeos por canal
 SELECT channel.displayname AS Channel, sum(videolikes) AS Likes
 FROM (video natural join videolikes) join post on (video.postid = post.id) join channel on (post.authorusername = channel.username)
 GROUP BY channel.username;
