@@ -33,6 +33,12 @@ public final class Query {
 		return new Query(this);
 	}
 	
+	public Query with(String param) {
+		this.vars.add(new StringQueryVariable(this.nextPosition, param));
+		this.nextPosition++;
+		return new Query(this);
+	}
+	
 	ArrayList<QueryVariable> getVars() {
 		return vars;
 	}

@@ -20,29 +20,30 @@ public class Querier implements Closeable {
 		connection = DriverManager.getConnection(url, username, password);
 	}
 	
+	private PreparedStatement prepareStatement(Query query) throws SQLException {	
+		
+		ArrayList<QueryVariable> vars = query.getVars();	
+		PreparedStatement statement = connection.prepareStatement(query.getQueryText());
+		for(QueryVariable var : vars) var.addToStatement(statement);
+		
+		return statement;	
+	}
+	
 	public ResultSet query(Query query) throws SQLException {
 		if(Objects.nonNull(result)) {
 			Statement st = result.getStatement();
 			result.close();
 			result = null;
 			st.close();
-		}
-	
-		ArrayList<QueryVariable> vars = query.getVars();
-		if(vars.isEmpty()) {
-			
-			Statement statement = connection.createStatement();
-			this.result = statement.executeQuery(query.getQueryText());
-			
-		} else {
-			
-			PreparedStatement statement = connection.prepareStatement(query.getQueryText());
-			for(QueryVariable var : vars) var.addToStatement(statement);
-			this.result = statement.executeQuery();
-			
-		}
+		}	
+		
+		result = prepareStatement(query).executeQuery();
 		
 		return result;
+	}
+	
+	public void update(Query update) throws SQLException {
+		prepareStatement(update).executeUpdate();
 	}
 
 	@Override
