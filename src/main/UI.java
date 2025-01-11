@@ -1,6 +1,7 @@
 package main;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -323,6 +324,141 @@ public class UI {
 		}	
 	}
 
-	public static void queryPage() {}
+	public static void queryPage() {
+		int nextState = -1;
+		while(nextState != 0) {
+			
+			System.out.println("\nO que deseja fazer?");
+			System.out.println("0. Voltar\n1. Consultas pré-definidas\n2. Consultas com parâmetros");
+			nextState = scan.nextInt();
+			
+			try {
+				switch(nextState) {
+					case 1:
+						definedQueries();
+						break;
+					case 2:
+						parameterQueries();
+						break;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
+	private static void parameterQueries() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private static void definedQueries() throws SQLException {
+		
+		DefinedQuery[] list = {
+			new DefinedQuery("O maior número de likes em um vídeo por categoria que tem vídeos com likes",
+					"SELECT videocategory.name AS Category, max(videolikes) AS MaxLikes\n"
+					+ "FROM videocategory left join (videolikes natural join video) on (name = videocategoryname)\n"
+					+ "GROUP BY videocategory.name\n"
+					+ "HAVING max(videolikes) > 0;"),
+			new DefinedQuery("A quantidade total de likes em vídeos por canal",
+					"SELECT channel.displayname AS Channel, sum(videolikes) AS Likes\n"
+					+ "FROM (video natural join videolikes) join post on (video.postid = post.id) join channel on (post.authorusername = channel.username)\n"
+					+ "GROUP BY channel.username;"),
+			new DefinedQuery("Os vídeos que receberam comentário menos de 1 minuto após a publicação",
+					"SELECT video.title AS Video\n"
+					+ "FROM video join post as videopost on (video.postid = videopost.id) join\n"
+					+ "    (comment join post as commentpost on (comment.postid = commentpost.id)) on (video.postid = comment.attachedpostid)\n"
+					+ "WHERE commentpost.date < videopost.date + '1 minute';"),
+			new DefinedQuery("Os canais que postaram nenhum vídeo há menos de uma semana",
+					"SELECT channel.displayname AS Channel\n"
+					+ "FROM channel join (video join post on (video.postid = post.id)) on (channel.username = post.authorusername)\n"
+					+ "EXCEPT\n"
+					+ "SELECT channel.displayname\n"
+					+ "FROM channel join (video join post on (video.postid = post.id)) on (channel.username = post.authorusername)\n"
+					+ "WHERE post.date > date_subtract(current_timestamp, '1 week');"),
+			new DefinedQuery("Os canais brasileiros com vídeos com legenda em português",
+					"SELECT displayname AS Channel\n"
+					+ "FROM channel\n"
+					+ "WHERE country = 'Brazil' and username in\n"
+					+ "    (SELECT post.authorusername\n"
+					+ "     FROM video join post on (video.postid = post.id)\n"
+					+ "     WHERE exists\n"
+					+ "         (SELECT language\n"
+					+ "         FROM videosubtitle\n"
+					+ "         WHERE language = 'pt'));"),
+			new DefinedQuery("Os vídeos com mais de 10 minutos e tag 'vlog' de canais verificados",
+					"SELECT video.title AS Video\n"
+					+ "FROM channel join (video join post on (video.postid = post.id)) on (channel.username = post.authorusername)\n"
+					+ "where video.length > 600 and channel.isverified = TRUE and exists\n"
+					+ "    (SELECT *\n"
+					+ "     FROM tag\n"
+					+ "     WHERE tag = 'vlog' and videoid = video.id);"),
+			new DefinedQuery("Os canais de contas premium e seus comentários",
+					"SELECT channel.displayname AS Channel, comment.text AS Comment\n"
+					+ "FROM account join channel on (account.email = channel.accountemail) right join\n"
+					+ "    (comment join post on (comment.postid = post.id)) on (channel.username = post.authorusername)\n"
+					+ "where account.ispremium = TRUE;"),
+			new DefinedQuery("Os canais brasileiros e o número de publicações e inscritos",
+					"SELECT channel.displayname AS Channel, count(distinct post.id) As Posts, count(distinct subscription.spectatorusername) As Subscribers\n"
+					+ "FROM channel join post on (channel.username = post.authorusername) join subscription on (channel.username = subscription.creatorusername)\n"
+					+ "WHERE country = 'Brazil'\n"
+					+ "GROUP BY channel.username;")
+		};
+		
+		int nextState = -1;
+		while(nextState != 0) {	
+			System.out.println("\nLista de consultas pré-definidas:");
+			System.out.println("0. Voltar");
+			for(int i = 1; i < 9; i++) {
+				System.out.println(i + ". " + list[i - 1].getDescription());
+			}
+			nextState = scan.nextInt();
+			
+			Query query = Query.on(list[nextState - 1].getQuery());
+			ResultSet rs = querier.query(query);
+			printResultSet(rs);
+		}
+    }
+	
+    public static void printResultSet(ResultSet rs) throws SQLException {
+
+        ResultSetMetaData metaData = rs.getMetaData();
+
+        // Get the number of columns in the ResultSet
+        int columnCount = metaData.getColumnCount();
+
+        // Print column headers
+        for (int i = 1; i <= columnCount; i++) {
+            String columnName = metaData.getColumnLabel(i);
+            System.out.print(columnName + "\t");
+        }
+        System.out.println();
+
+        // Print the column values for each row
+        while (rs.next()) {
+            for (int i = 1; i <= columnCount; i++) {
+                Object value = rs.getObject(i);
+                System.out.print(value + "\t");
+            }
+            System.out.println();
+        }
+    }
+}
+
+class DefinedQuery {
+	private String description;
+	private String query;
+	
+	public String getDescription() {
+		return description;
+	}
+
+	public String getQuery() {
+		return query;
+	}
+	
+	public DefinedQuery(String description, String query) {
+		this.description = description;
+		this.query = query;
+	}
 }
