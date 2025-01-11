@@ -347,9 +347,41 @@ public class UI {
 		}
 	}
 
-	private static void parameterQueries() {
-		// TODO Auto-generated method stub
+	private static void parameterQueries() throws SQLException {
+		DefinedQuery[] list = {
+				new DefinedQuery("Os vídeos com mais de 10 minutos e tag 'xxxxx' de canais verificados",
+						"SELECT video.title AS Video\n"
+						+ "FROM channel join (video join post on (video.postid = post.id)) on (channel.username = post.authorusername)\n"
+						+ "where video.length > 600 and channel.isverified = TRUE and exists\n"
+						+ "    (SELECT *\n"
+						+ "     FROM tag\n"
+						+ "     WHERE tag = ? and videoid = video.id);"),
+				new DefinedQuery("Os canais do país 'xxxxx' e o número de publicações e inscritos",
+						"SELECT channel.displayname AS Channel, count(distinct post.id) As Posts, count(distinct subscription.spectatorusername) As Subscribers\n"
+						+ "FROM channel join post on (channel.username = post.authorusername) join subscription on (channel.username = subscription.creatorusername)\n"
+						+ "WHERE country = ?\n"
+						+ "GROUP BY channel.username;")
+			};
 		
+		int nextState = -1;
+		while(nextState != 0) {	
+			System.out.println("\nLista de consultas com parâmetros:");
+			System.out.println("0. Voltar");
+			for(int i = 1; i < 3; i++) {
+				System.out.println(i + ". " + list[i - 1].getDescription());
+			}
+			nextState = scan.nextInt();
+			
+			if(nextState != 0) {
+				System.out.println("Insira o valor do parâmetro:");
+				scan.nextLine();
+				String value = scan.nextLine();
+				
+				Query query = Query.on(list[nextState - 1].getQuery()).with(value);
+				ResultSet rs = querier.query(query);
+				printResultSet(rs);
+			}
+		}
 	}
 
 	private static void definedQueries() throws SQLException {
@@ -414,9 +446,11 @@ public class UI {
 			}
 			nextState = scan.nextInt();
 			
-			Query query = Query.on(list[nextState - 1].getQuery());
-			ResultSet rs = querier.query(query);
-			printResultSet(rs);
+			if(nextState != 0) {
+				Query query = Query.on(list[nextState - 1].getQuery());
+				ResultSet rs = querier.query(query);
+				printResultSet(rs);
+			}
 		}
     }
 	
