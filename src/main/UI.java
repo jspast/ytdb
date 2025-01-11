@@ -2,6 +2,7 @@ package main;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 import query.Querier;
@@ -153,9 +154,154 @@ public class UI {
 		loggedInPage(email, username);
 	}
 
-	private static void loggedInPage(String email, String username) {
-		// TODO Auto-generated method stub
+	private static void loggedInPage(String email, String username) throws SQLException {
+		int nextState = -1;
 		
+		while(nextState != 0) {
+			System.out.println("Seja bem-vindo " + username + ". O que deseja fazer?");
+			System.out.println("0. Sair\n1. Ver vídeo\n2. Curtir vídeo\n3. Inscrever-se");
+			nextState = scan.nextInt();
+			
+			switch(nextState) {
+				case 1:
+					watchVideo(email, username);
+					break;
+				case 2:
+					likeVideo(email, username);
+					break;
+				case 3:
+					subscribe(email, username);
+					break;
+			}
+		}	
+	}
+
+	private static void subscribe(String email, String username) throws SQLException {
+		int nextState = -1;
+		
+		while(nextState != 0) {
+			System.out.println("A que canal deseja se inscrever?");
+			System.out.println("0. Voltar");
+			
+			Query getChannels = Query.on("SELECT DISTINCT Channel.displayName, username,\n"
+									+ "CASE\n"
+									+ "	WHEN creatorUsername IN (\n"
+									+ "		SELECT creatorUsername FROM Subscription\n"
+									+ "		WHERE spectatorUsername = ?\n"
+									+ "	)\n"
+									+ "	THEN TRUE ELSE FALSE\n"
+									+ "END AS isSubscribed\n"
+									+ "FROM Subscription\n"
+									+ "JOIN Channel ON (creatorUsername = username)")
+								  .with(username);
+			ResultSet rs = querier.query(getChannels);
+		
+			ArrayList<String> channels = new ArrayList<String>();
+			ArrayList<Boolean> subscriptions = new ArrayList<Boolean>();
+			for(int i = 1; rs.next(); i++) {
+				channels.add(rs.getString(2));
+				subscriptions.add(rs.getBoolean(3));
+				System.out.println(i + ". " + rs.getString(1) + " " + (rs.getBoolean(3) ? "(subscribed)" : ""));
+			}
+			
+			nextState = scan.nextInt();
+			
+			if(nextState > 0 && nextState <= channels.size()) {
+				String channelUsername = channels.get(nextState - 1);
+				boolean subscribed = subscriptions.get(nextState - 1);
+			
+				if(!subscribed) {	
+					Query subscribe = Query.on("INSERT INTO Subscription (spectatorUsername, creatorUsername)\n"
+											 + "VALUES (?, ?)")
+										   .with(username).with(channelUsername);
+					querier.update(subscribe);
+				} else {
+					Query unsubscribe = Query.on("DELETE FROM Subscription\n"
+											   + "WHERE spectatorUsername = ? AND creatorUsername = ?")
+											 .with(username).with(channelUsername);				
+					querier.update(unsubscribe);
+				}
+			}
+		}	
+	}
+
+	private static void likeVideo(String email, String username) throws SQLException {
+		int nextState = -1;
+		
+		while(nextState != 0) {
+			System.out.println("Qual vídeo deseja curtir?");
+			System.out.println("0. Voltar");
+			
+			Query watchedVideos = Query.on("SELECT Video.title, postId, liked FROM VIDEO\n"
+											+ "NATURAL JOIN Visualization\n"
+											+ "WHERE channelUsername = ?")
+										   .with(username);
+			ResultSet rs = querier.query(watchedVideos);
+		
+			ArrayList<Integer> videos = new ArrayList<Integer>();
+			ArrayList<Boolean> likes = new ArrayList<Boolean>();
+			for(int i = 1; rs.next(); i++) {
+				videos.add(rs.getInt(2));
+				likes.add(rs.getBoolean(3));
+				System.out.println(i + ". " + rs.getString(1) + " " + (rs.getBoolean(3) ? "(liked)" : ""));
+			}
+			
+			nextState = scan.nextInt();
+			
+			if(nextState > 0 && nextState <= videos.size()) {
+				int id = videos.get(nextState - 1);
+				boolean liked = likes.get(nextState - 1);
+			
+				if(liked) {	
+					Query addLike = Query.on("UPDATE Visualization\n"
+													+ "SET liked = false\n"
+													+ "WHERE channelUsername = ?\n"
+													+ "AND postId = ?")
+											  	  .with(username).with(id);
+					querier.update(addLike);
+				} else {
+					Query removeLike = Query.on("UPDATE Visualization\n"
+													+ "SET liked = true\n"
+													+ "WHERE channelUsername = ?\n"
+													+ "AND postId = ?")
+											  	  .with(username).with(id);				
+					querier.update(removeLike);
+				}
+			}
+		}	
+	}
+
+	private static void watchVideo(String email, String username) throws SQLException {
+		int nextState = -1;
+		
+		while(nextState != 0) {
+			System.out.println("Qual vídeo deseja ver?");
+			System.out.println("0. Voltar");
+			
+			Query notWatchedVideos = Query.on("SELECT Video.title, postId FROM VIDEO\n"
+											+ "EXCEPT\n"
+											+ "SELECT Video.title, postId FROM Video\n"
+											+ "NATURAL JOIN Visualization\n"
+											+ "WHERE channelUsername = ?")
+										   .with(username);
+			ResultSet rs = querier.query(notWatchedVideos);
+		
+			ArrayList<Integer> videos = new ArrayList<Integer>();
+			for(int i = 1; rs.next(); i++) {
+				videos.add(rs.getInt(2));
+				System.out.println(i + ". " + rs.getString(1));
+			}
+			
+			nextState = scan.nextInt();
+			
+			if(nextState > 0 && nextState <= videos.size()) {
+				int id = videos.get(nextState - 1);
+				Query addVisualization = Query.on("INSERT INTO Visualization (channelUsername, postId)\n"
+												+ "VALUES (?, ?)")
+											  .with(username).with(id);
+				querier.update(addVisualization);
+			}
+		}	
 	}
 
 	private static void listUsers() throws SQLException {
